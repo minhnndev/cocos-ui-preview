@@ -8,8 +8,10 @@ and export a PNG without starting your game.
 
 ## Install
 
-Download the macOS ZIP from [Releases](https://github.com/minhnndev/cocos-ui-preview/releases),
-extract it and drag **Cocos UI Preview.app** to Applications. Python is bundled.
+The macOS app and ZIP have been built and validated locally. A public binary
+release has not been uploaded yet; build from source below, or check
+[Releases](https://github.com/minhnndev/cocos-ui-preview/releases) for future uploads.
+For a ZIP build, extract it and drag **Cocos UI Preview.app** to Applications. Python is bundled.
 The initial build is Apple Silicon (arm64), locally validated on macOS 26;
 its declared minimum is macOS 12, which has not been independently tested.
 The app is ad-hoc signed, not Developer ID signed or notarized. For a download
