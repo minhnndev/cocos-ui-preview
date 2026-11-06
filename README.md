@@ -24,8 +24,9 @@ cocos-ui-preview
 cocos-ui-preview path/to/screen.csd --resource-root path/to/Resources
 ```
 
-Linux/Windows source CI covers offline rendering and parsing; binary releases
-and interactive platform acceptance currently cover macOS only.
+The CI workflow is configured for Linux/Windows/macOS source checks. Only local
+macOS runs are validated for this release; see Actions for actual CI results.
+Binary releases and interactive platform acceptance currently cover macOS only.
 
 ## Use
 
