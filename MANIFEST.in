@@ -1,0 +1,5 @@
+include LICENSE NOTICE README.md THIRD_PARTY.md CONTRIBUTING.md CHANGELOG.md uv.lock
+recursive-include licenses *
+recursive-include scripts *.py
+recursive-include tests *.py
+recursive-include .github *.yml

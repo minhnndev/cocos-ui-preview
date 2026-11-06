@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cocos-ui-preview"
+version = "0.1.0"
+description = "Offline, read-only Cocos Studio UI preview and resource inspector"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "GPL-3.0-only"
+license-files = ["LICENSE", "NOTICE", "licenses/*"]
+authors = [{name = "Cocos UI Preview contributors"}]
+dependencies = ["PyQt5>=5.15.11,<6", "Pillow>=10,<14"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: X11 Applications :: Qt",
+  "Topic :: Games/Entertainment",
+  "Topic :: Software Development :: User Interfaces",
+  "Programming Language :: Python :: 3",
+]
+
+[project.urls]
+Repository = "https://github.com/minhnndev/cocos-ui-preview"
+Issues = "https://github.com/minhnndev/cocos-ui-preview/issues"
+
+[project.scripts]
+cocos-ui-preview = "cocos_ui_preview.app:main"
+
+[dependency-groups]
+build = ["pyinstaller>=6.16,<7", "setuptools>=77"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+cocos_ui_preview = ["examples/*", "assets/*"]

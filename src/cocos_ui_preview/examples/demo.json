@@ -1,0 +1,221 @@
+{
+  "designWidth": 960,
+  "designHeight": 600,
+  "widgetTree": {
+    "classname": "Panel",
+    "options": {
+      "name": "Demo",
+      "width": 960,
+      "height": 600,
+      "anchorPointX": 0,
+      "anchorPointY": 0,
+      "colorType": 1,
+      "bgColorR": 19,
+      "bgColorG": 29,
+      "bgColorB": 46
+    },
+    "children": [
+      {
+        "classname": "Label",
+        "options": {
+          "name": "title",
+          "width": 780,
+          "height": 50,
+          "anchorPointX": 0,
+          "anchorPointY": 0,
+          "x": 64,
+          "y": 492,
+          "ignoreSize": false,
+          "fontSize": 36,
+          "text": "Cocos UI Preview",
+          "colorR": 225,
+          "colorG": 246,
+          "colorB": 249
+        },
+        "children": []
+      },
+      {
+        "classname": "Label",
+        "options": {
+          "name": "subtitle",
+          "width": 780,
+          "height": 28,
+          "anchorPointX": 0,
+          "anchorPointY": 0,
+          "x": 64,
+          "y": 447,
+          "ignoreSize": false,
+          "fontSize": 17,
+          "text": "Inspect your layout. Keep your game assets local.",
+          "colorR": 145,
+          "colorG": 170,
+          "colorB": 189
+        },
+        "children": []
+      },
+      {
+        "classname": "Panel",
+        "options": {
+          "name": "card",
+          "width": 510,
+          "height": 282,
+          "anchorPointX": 0,
+          "anchorPointY": 0,
+          "x": 64,
+          "y": 113,
+          "backGroundImageData": {
+            "path": "panel.png"
+          },
+          "backGroundScale9Enable": true
+        },
+        "children": [
+          {
+            "classname": "Label",
+            "options": {
+              "name": "card_title",
+              "width": 450,
+              "height": 30,
+              "anchorPointX": 0,
+              "anchorPointY": 0,
+              "x": 28,
+              "y": 215,
+              "ignoreSize": false,
+              "fontSize": 22,
+              "text": "A small, editable example"
+            },
+            "children": []
+          },
+          {
+            "classname": "Label",
+            "options": {
+              "name": "card_text",
+              "width": 450,
+              "height": 64,
+              "anchorPointX": 0,
+              "anchorPointY": 0,
+              "x": 28,
+              "y": 137,
+              "ignoreSize": false,
+              "fontSize": 16,
+              "text": "Select a node in the tree to inspect its size,\nanchor, texture and bounds. Try Isolate selection."
+            },
+            "children": []
+          },
+          {
+            "classname": "Button",
+            "options": {
+              "name": "preview_button",
+              "width": 204,
+              "height": 48,
+              "anchorPointX": 0.5,
+              "anchorPointY": 0.5,
+              "x": 130,
+              "y": 65,
+              "normalData": {
+                "path": "button.png"
+              },
+              "scale9Enable": true,
+              "text": "PREVIEW",
+              "fontSize": 16,
+              "textColorR": 17,
+              "textColorG": 51,
+              "textColorB": 60
+            },
+            "children": []
+          },
+          {
+            "classname": "ImageView",
+            "options": {
+              "name": "hidden_marker",
+              "width": 100,
+              "height": 30,
+              "anchorPointX": 0,
+              "anchorPointY": 0,
+              "x": 440,
+              "y": 30,
+              "visible": false,
+              "fileNameData": {
+                "path": "tile.png"
+              },
+              "scaleX": 2,
+              "scaleY": 2
+            },
+            "children": []
+          }
+        ]
+      },
+      {
+        "classname": "Label",
+        "options": {
+          "name": "tools_title",
+          "width": 270,
+          "height": 32,
+          "anchorPointX": 0,
+          "anchorPointY": 0,
+          "x": 625,
+          "y": 350,
+          "ignoreSize": false,
+          "fontSize": 22,
+          "text": "Explore the template"
+        },
+        "children": []
+      },
+      {
+        "classname": "Label",
+        "options": {
+          "name": "tools",
+          "width": 270,
+          "height": 150,
+          "anchorPointX": 0,
+          "anchorPointY": 0,
+          "x": 625,
+          "y": 185,
+          "ignoreSize": false,
+          "fontSize": 17,
+          "text": "01   Select a node\n02   Zoom and pan\n03   Inspect resources\n04   Export a PNG",
+          "colorR": 157,
+          "colorG": 185,
+          "colorB": 204
+        },
+        "children": []
+      },
+      {
+        "classname": "LoadingBar",
+        "options": {
+          "name": "progress",
+          "width": 240,
+          "height": 18,
+          "anchorPointX": 0,
+          "anchorPointY": 0,
+          "x": 625,
+          "y": 144,
+          "ignoreSize": false,
+          "textureData": {
+            "path": "tile.png"
+          },
+          "percent": 72
+        },
+        "children": []
+      },
+      {
+        "classname": "Label",
+        "options": {
+          "name": "footer",
+          "width": 830,
+          "height": 26,
+          "anchorPointX": 0,
+          "anchorPointY": 0,
+          "x": 64,
+          "y": 43,
+          "ignoreSize": false,
+          "fontSize": 14,
+          "text": "STATIC PREVIEW   /   JSON + CSD   /   NO LUA EXECUTION",
+          "colorR": 102,
+          "colorG": 138,
+          "colorB": 160
+        },
+        "children": []
+      }
+    ]
+  }
+}

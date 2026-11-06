@@ -1,0 +1,19 @@
+Cocos UI Preview
+Copyright (C) 2026 Cocos UI Preview contributors
+SPDX-License-Identifier: GPL-3.0-only
+
+This tool was developed independently after evaluating
+https://github.com/WangChuan5ef/cocos-ui-visualizer
+(revision efa65c656ecb2a4e8f222467aa9b6b9510ce5558).
+No upstream visualizer modules or game assets are required or bundled.
+Its MIT notice is preserved in licenses/upstream-visualizer-MIT.txt.
+
+Legacy child-anchor compensation and sprite frame/cap-inset interpretation
+follow Cocos2d-x GUIReader / SpriteFrameCache / Scale9Sprite semantics.
+Cocos2d-x MIT attribution is preserved in licenses/cocos2d-x-MIT.txt.
+
+Bundled demo UI, textures and icon were created for this project and are
+covered by the project license. They contain no third-party game artwork.
+
+Runtime dependencies keep their respective licenses. See THIRD_PARTY.md
+and the distribution license files shipped alongside the application.
