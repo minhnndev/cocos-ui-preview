@@ -128,6 +128,23 @@ Smoke the built executable (including its real window, tree selection and export
 "artifacts/Cocos UI Preview.app/Contents/MacOS/Cocos UI Preview" --smoke-test artifacts/smoke
 ```
 
+This repository is maintained independently of any game checkout. Game projects
+open as external input; they do not need a tool source mirror, launcher or Python
+environment inside their own source tree. Use the app's Open UI / Resource root,
+or run `cocos-ui-preview /path/to/game/res/studio_ui/screen.json --resource-root /path/to/game/res`.
+
+Optional integration checks can use a local project with `NewPlayerLayer.json`
+and `ToolKitLayer.json` fixtures. They edit temporary copies and never save over
+the project's templates. No game assets are included in this repository:
+
+```sh
+COCOS_UI_PREVIEW_GAME_ROOT=/path/to/game \
+  uv run python tests/integration/test_game_project.py -v
+```
+
+Without that environment variable, the two game-specific checks are skipped;
+the synthetic checks still run. Standalone tests above require no game checkout.
+
 CI tests source on Linux/Windows/macOS and builds macOS artifacts. Public release
 publishing is a manual maintainer step after inspection; CI does not upload a
 release automatically. See [THIRD_PARTY](THIRD_PARTY.md) for license/source details.
