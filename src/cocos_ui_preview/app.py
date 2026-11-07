@@ -1,29 +1,43 @@
 #!/usr/bin/env python3
-"""Offline, read-only Cocos Studio JSON/CSD preview and resource inspector."""
+"""Offline Cocos Studio preview and legacy JSON property editor."""
 import argparse
 import json
 import os
 from pathlib import Path
+import shutil
 import sys
 
 if "--export" in sys.argv:
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PyQt5.QtCore import Qt, QTimer, QEvent
+from PyQt5.QtCore import Qt, QTimer, QEvent, QStandardPaths
 from PyQt5 import sip
 from PyQt5.QtGui import QColor, QPainter, QKeySequence
 from PyQt5.QtWidgets import (QApplication, QCheckBox, QComboBox, QFileDialog, QGraphicsView,
                             QHBoxLayout, QLabel, QListWidget, QMainWindow, QMessageBox,
                             QPlainTextEdit, QPushButton, QSplitter, QTreeWidget,
-                            QTreeWidgetItem, QVBoxLayout, QWidget)
+                            QTreeWidgetItem, QVBoxLayout, QWidget, QTabWidget)
 
 from .model import Document
 from .scene import PreviewScene
+from .editor import EditorSession
+from .inspector import PropertyInspector
 from . import __version__
 
 
 def sample_path():
     return Path(__file__).resolve().parent / "examples/demo.json"
+
+
+def working_demo(directory=None):
+    """Create a user-owned example; never edit a frozen bundle's resources."""
+    directory = Path(directory or QStandardPaths.writableLocation(QStandardPaths.AppDataLocation)) / "Editable demo"
+    directory.mkdir(parents=True, exist_ok=True)
+    for source in sample_path().parent.iterdir():
+        target = directory / source.name
+        if source.is_file() and not target.exists():
+            shutil.copyfile(source, target)
+    return directory / "demo.json"
 
 
 class PreviewApplication(QApplication):
@@ -68,6 +82,7 @@ class PreviewWindow(QMainWindow):
         super().__init__()
         self.resource_root = resource_root
         self.scene = None
+        self.session = None
         self.tree_items = {}
         self.setWindowTitle("Cocos UI Preview")
         self.resize(1580, 980)
@@ -89,6 +104,14 @@ class PreviewWindow(QMainWindow):
         for control in [self.panel_fill, self.hidden, self.bounds, self.isolate]:
             toolbar.addWidget(control); control.toggled.connect(self.update_options)
         self.summary = QLabel("Open Cocos Studio JSON/CSD. Scroll to zoom; drag to pan.")
+        editing = QHBoxLayout(); layout.addLayout(editing)
+        self.save_button = QPushButton("Save"); self.save_button.clicked.connect(self.save_file)
+        self.save_as_button = QPushButton("Save As…"); self.save_as_button.clicked.connect(self.save_as)
+        self.undo_button = QPushButton("Undo"); self.undo_button.clicked.connect(lambda: self.session and self.session.undo.undo())
+        self.redo_button = QPushButton("Redo"); self.redo_button.clicked.connect(lambda: self.session and self.session.undo.redo())
+        for button in [self.save_button, self.save_as_button, self.undo_button, self.redo_button]:
+            editing.addWidget(button)
+        editing.addWidget(QLabel("Legacy JSON editor · Studio JSON/CSD preview")); editing.addStretch()
         layout.addWidget(self.summary)
         splitter = QSplitter(); layout.addWidget(splitter, 1)
         self.tree = QTreeWidget(); self.tree.setHeaderLabels(["Node", "Type"])
@@ -96,17 +119,27 @@ class PreviewWindow(QMainWindow):
         splitter.addWidget(self.tree)
         self.view = Canvas(); splitter.addWidget(self.view)
         inspector = QWidget(); right = QVBoxLayout(inspector); right.setContentsMargins(4, 0, 0, 0)
-        right.addWidget(QLabel("Node properties · read only"))
-        self.properties = QPlainTextEdit(); self.properties.setReadOnly(True); right.addWidget(self.properties, 3)
+        self.inspector = PropertyInspector()
+        self.inspector.edited.connect(self.edit_property); self.inspector.reset.connect(self.reset_property)
+        self.properties = QPlainTextEdit(); self.properties.setReadOnly(True)
+        property_tabs = QTabWidget(); property_tabs.addTab(self.inspector, "Edit properties")
+        property_tabs.addTab(self.properties, "Computed / raw · read only"); right.addWidget(property_tabs, 4)
         right.addWidget(QLabel("Resources and preview limits"))
         self.issues = QListWidget(); self.issues.setWordWrap(True); right.addWidget(self.issues, 1)
-        splitter.addWidget(inspector); splitter.setSizes([280, 950, 350])
+        splitter.addWidget(inspector); splitter.setSizes([240, 870, 470])
         self.statusBar().showMessage("Static template · runtime Lua, actors and native text input are not rendered")
         self.addAction(self.make_shortcut("Open", QKeySequence.Open, self.open_file))
+        file_menu = self.menuBar().addMenu("File")
+        file_menu.addAction(self.make_shortcut("Save", QKeySequence.Save, self.save_file))
+        file_menu.addAction(self.make_shortcut("Save As…", QKeySequence.SaveAs, self.save_as))
+        edit_menu = self.menuBar().addMenu("Edit")
+        edit_menu.addAction(self.make_shortcut("Undo property", QKeySequence.Undo, lambda: self.session and self.session.undo.undo()))
+        edit_menu.addAction(self.make_shortcut("Redo property", QKeySequence.Redo, lambda: self.session and self.session.undo.redo()))
         menu = self.menuBar().addMenu("Help")
         menu.addAction("About Cocos UI Preview", self.about)
         self.root_label = QLabel(); layout.insertWidget(1, self.root_label)
         self.update_root_label()
+        self.update_edit_state()
         if path:
             path = Path(path)
             directory = path if path.is_dir() else path.parent
@@ -154,11 +187,11 @@ class PreviewWindow(QMainWindow):
         path = QFileDialog.getExistingDirectory(self, "Choose project resource root", str(self.resource_root or Path.home()))
         if path:
             self.resource_root = Path(path)
-            self.update_root_label(); self.reload()
+            self.update_root_label(); self.refresh_preview()
 
     def about(self):
         QMessageBox.about(self, "Cocos UI Preview", f"Cocos UI Preview {__version__}\n"
-            "Read-only Cocos Studio JSON/CSD inspection.\nGPL-3.0-only · PyQt5 / Qt / Pillow\n"
+            "Legacy JSON property editor; Studio JSON/CSD preview.\nGPL-3.0-only · PyQt5 / Qt / Pillow\n"
             "https://github.com/minhnndev/cocos-ui-preview\n\n"
             "No Lua execution, native game runtime or CSB decoder.\n"
             "Original demo assets are included; your game assets stay local.")
@@ -168,6 +201,10 @@ class PreviewWindow(QMainWindow):
             self.load_file(self.scene.document.path)
 
     def load_file(self, path):
+        if not self.confirm_unsaved():
+            if self.scene:
+                self.files.setCurrentIndex(self.files.findData(str(self.scene.document.path)))
+            return False
         try:
             new_scene = PreviewScene(Document.load(path), self.resource_root)
         except (ValueError, OSError, TypeError, KeyError, OverflowError, RecursionError) as error:
@@ -177,6 +214,15 @@ class PreviewWindow(QMainWindow):
             previous.selectionChanged.disconnect(self.select_canvas)
         self.scene = new_scene; self.view.setScene(new_scene)
         self.scene.selectionChanged.connect(self.select_canvas)
+        if self.session:
+            self.session.changed.disconnect(self.refresh_preview)
+            self.session.undo.indexChanged.disconnect(self.update_edit_state)
+            self.session.undo.cleanChanged.disconnect(self.update_edit_state)
+            self.session.deleteLater()
+        self.session = EditorSession(new_scene.document, self.validate_preview)
+        self.session.changed.connect(self.refresh_preview)
+        self.session.undo.indexChanged.connect(self.update_edit_state)
+        self.session.undo.cleanChanged.connect(self.update_edit_state)
         self.tree.blockSignals(True); self.tree.clear(); self.tree_items = {}
 
         def insert(node, parent=None):
@@ -190,15 +236,103 @@ class PreviewWindow(QMainWindow):
                 insert(child, item)
 
         insert(new_scene.document.root); self.tree.expandToDepth(0); self.tree.blockSignals(False)
-        self.properties.clear(); self.isolate.setChecked(False)
+        self.properties.clear(); self.inspector.clear(); self.isolate.setChecked(False)
         index = self.files.findData(str(new_scene.document.path))
         if index >= 0:
             self.files.setCurrentIndex(index)
-        self.setWindowTitle(f"{new_scene.document.path.name} · Cocos UI Preview")
+        self.update_edit_state()
         self.update_options(); QTimer.singleShot(0, self.view.fit)
         if previous:
             previous.deleteLater()
         return True
+
+    def validate_preview(self, document):
+        scene = PreviewScene(document, self.resource_root)
+        scene.deleteLater()
+
+    def refresh_preview(self):
+        if not self.session:
+            return
+        previous = self.scene
+        selected = self.tree.currentItem()
+        uid = selected.data(0, Qt.UserRole) if selected else None
+        transform = self.view.transform()
+        x, y = self.view.horizontalScrollBar().value(), self.view.verticalScrollBar().value()
+        scene = PreviewScene(self.session.document, self.resource_root)
+        previous.selectionChanged.disconnect(self.select_canvas)
+        self.scene = scene; self.view.setScene(scene)
+        scene.selectionChanged.connect(self.select_canvas)
+        self.view.setTransform(transform)
+        self.view.horizontalScrollBar().setValue(x); self.view.verticalScrollBar().setValue(y)
+        for node in scene.document.root.walk():
+            self.tree_items[node.uid].setText(0, node.name)
+        if uid:
+            scene.blockSignals(True); scene.node_items[uid].setSelected(True); scene.blockSignals(False)
+        self.update_options()
+        if uid:
+            self.inspect(scene.node_items[uid])
+        previous.deleteLater()
+
+    def update_edit_state(self, *args):
+        if sip.isdeleted(self) or sip.isdeleted(self.save_button):
+            return
+        valid = self.session is not None and not sip.isdeleted(self.session) and not sip.isdeleted(self.session.undo)
+        editable = bool(valid and self.session.editable)
+        self.save_button.setEnabled(editable and self.session.dirty)
+        self.save_as_button.setEnabled(editable)
+        self.undo_button.setEnabled(editable and self.session.undo.canUndo())
+        self.redo_button.setEnabled(editable and self.session.undo.canRedo())
+        if valid:
+            self.setWindowTitle(f"{'* ' if self.session.dirty else ''}{self.session.document.path.name} · Cocos UI Preview")
+
+    def edit_property(self, key, value):
+        if not self.session or not self.inspector.uid:
+            return False
+        try:
+            return self.session.edit(self.inspector.uid[0], key, value)
+        except (ValueError, OSError, TypeError, KeyError, OverflowError) as error:
+            QMessageBox.warning(self, "Cannot edit property", str(error))
+            self.inspect(self.scene.node_items[self.inspector.uid[0]])
+            return False
+
+    def reset_property(self, key):
+        if self.session and self.inspector.uid:
+            try:
+                self.session.edit(self.inspector.uid[0], key, reset=True)
+            except (ValueError, OSError, TypeError, KeyError, OverflowError) as error:
+                QMessageBox.warning(self, "Cannot reset property", str(error))
+
+    def save_file(self, checked=False, destination=None):
+        if self.focusWidget():
+            self.focusWidget().clearFocus()  # Commit pending spinbox/line input before serializing.
+        if not self.session or not self.session.editable:
+            return False
+        try:
+            path = self.session.save(destination)
+        except (ValueError, OSError, TypeError) as error:
+            QMessageBox.warning(self, "Cannot save template", str(error)); return False
+        self.fill_files(path.parent); self.files.setCurrentIndex(self.files.findData(str(path)))
+        self.update_edit_state()
+        self.statusBar().showMessage(f"Saved {path}")
+        return True
+
+    def save_as(self):
+        if not self.session or not self.session.editable:
+            return False
+        source = self.session.document.path
+        path, _ = QFileDialog.getSaveFileName(self, "Save As · new filename in the source folder", str(source.with_name(source.stem + "-edited.json")), "Legacy JSON (*.json)")
+        return self.save_file(destination=path) if path else False
+
+    def confirm_unsaved(self):
+        if self.focusWidget():
+            self.focusWidget().clearFocus()
+        if not self.session or not self.session.dirty:
+            return True
+        choice = QMessageBox.warning(self, "Unsaved template changes", "Save your changes before leaving this document?",
+                                     QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel, QMessageBox.Cancel)
+        if choice == QMessageBox.Save:
+            return self.save_file()
+        return choice == QMessageBox.Discard
 
     def update_options(self):
         if not self.scene:
@@ -225,6 +359,7 @@ class PreviewWindow(QMainWindow):
                 "canvas_bounds_top_left": [round(v, 3) for v in [bounds.x(), bounds.y(), bounds.width(), bounds.height()]],
                 "resource": item.reference, "options": item.o}
         self.properties.setPlainText(json.dumps(info, indent=2, ensure_ascii=False))
+        self.inspector.bind(item.node, self.scene.document.path, self.session.editable, self.session.read_only_reason)
 
     def select_tree(self, current, previous=None):
         if not current or not self.scene:
@@ -265,6 +400,13 @@ class PreviewWindow(QMainWindow):
             path = Path(urls[0].toLocalFile()); self.open_path(path)
 
     def closeEvent(self, event):
+        if not self.confirm_unsaved():
+            event.ignore(); return
+        if self.session:
+            self.session.changed.disconnect(self.refresh_preview)
+            self.session.undo.indexChanged.disconnect(self.update_edit_state)
+            self.session.undo.cleanChanged.disconnect(self.update_edit_state)
+            self.session = None
         if self.scene is not None and not sip.isdeleted(self.scene):
             self.scene.selectionChanged.disconnect(self.select_canvas)
         self.view.setScene(None)
@@ -275,19 +417,20 @@ class PreviewWindow(QMainWindow):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("path", nargs="?", default=str(sample_path()), help="JSON/CSD document or template directory; default: bundled demo")
+    parser.add_argument("path", nargs="?", help="JSON/CSD document or template directory; default: writable copy of bundled demo")
     parser.add_argument("--version", action="version", version=f"Cocos UI Preview {__version__}")
     parser.add_argument("--resource-root", type=Path)
     parser.add_argument("--export", type=Path, help="Export one template PNG and exit (no GUI)")
     parser.add_argument("--report", type=Path, help="Write resource/unsupported-feature report")
     parser.add_argument("--show-hidden", action="store_true")
     parser.add_argument("--smoke-test", type=Path, help=argparse.SUPPRESS)
+    parser.add_argument("--editor-smoke-test", type=Path, help=argparse.SUPPRESS)
     args = parser.parse_args([arg for arg in sys.argv[1:] if not arg.startswith("-psn_")])
     app = PreviewApplication([sys.argv[0]]); app.setApplicationName("Cocos UI Preview"); app.setStyle("Fusion")
     app.setOrganizationName("Cocos UI Preview"); app.setApplicationVersion(__version__)
     if args.export:
         try:
-            scene = PreviewScene(Document.load(args.path), args.resource_root)
+            scene = PreviewScene(Document.load(args.path or sample_path()), args.resource_root)
             scene.show_hidden = args.show_hidden; scene.update_visibility()
             args.export.parent.mkdir(parents=True, exist_ok=True); scene.export(args.export)
             report = scene.report()
@@ -297,27 +440,52 @@ def main():
             return 0
         except (ValueError, OSError, TypeError, KeyError, OverflowError, RecursionError) as error:
             print(f"Preview failed: {error}", file=sys.stderr); return 1
-    app.setStyleSheet("QWidget { background: #222b36; color: #d6dce6; } QTreeWidget, QPlainTextEdit, QListWidget { background: #1c2530; } "
+    app.setStyleSheet("QWidget { background: #222b36; color: #d6dce6; } QWidget:disabled { color: #718091; } QTreeWidget, QPlainTextEdit, QListWidget { background: #1c2530; } "
                      "QPushButton { padding: 6px 9px; } QComboBox { padding: 5px; } QSplitter::handle { background: #111a25; }")
-    window = PreviewWindow(args.path, args.resource_root); window.hidden.setChecked(args.show_hidden); window.show()
+    initial = args.path
+    if args.editor_smoke_test:
+        initial = working_demo(args.editor_smoke_test.resolve())
+    elif not initial:
+        initial = working_demo()
+    window = PreviewWindow(initial, args.resource_root); window.hidden.setChecked(args.show_hidden); window.show()
     app.window = window
     if app.pending_file:
         window.open_path(app.pending_file)
-    if args.smoke_test:
+    smoke_directory = args.editor_smoke_test or args.smoke_test
+    if smoke_directory:
         def smoke():
             try:
-                args.smoke_test.mkdir(parents=True, exist_ok=True)
+                smoke_directory.mkdir(parents=True, exist_ok=True)
                 window.view.fit()
                 items = list(window.scene.node_items.values())
                 selected = next((i for i in items if i.node.kind == "Button"), items[0])
                 window.tree.setCurrentItem(window.tree_items[selected.node.uid])
                 assert selected.isSelected() and selected.node.name in window.properties.toPlainText()
-                window.scene.export(args.smoke_test / "canvas.png")
-                assert window.grab().save(str(args.smoke_test / "window.png"))
+                selected_name = selected.node.name
+                if args.editor_smoke_test:
+                    uid = selected.node.uid
+                    window.scene.export(smoke_directory / "before.png")
+                    control = window.inspector.controls["x"]
+                    old_x = control.value(); control.setValue(old_x + 24)
+                    assert window.scene.node_items[uid].o["x"] == old_x + 24
+                    window.session.undo.undo(); assert window.scene.node_items[uid].o["x"] == old_x
+                    window.session.undo.redo(); assert window.scene.node_items[uid].o["x"] == old_x + 24
+                    window.inspector.controls["text"].setPlainText("EDITED LIVE")
+                    assert window.scene.node_items[uid].text == "EDITED LIVE"
+                    destination = window.session.document.path.with_name("demo-edited.json")
+                    assert window.save_file(destination=destination)
+                    assert not window.session.dirty
+                    assert window.load_file(destination)
+                    window.tree.setCurrentItem(window.tree_items[uid])
+                    assert window.scene.node_items[uid].text == "EDITED LIVE"
+                    assert window.scene.node_items[uid].o["x"] == old_x + 24
+                window.scene.export(smoke_directory / "canvas.png")
+                assert window.grab().save(str(smoke_directory / "window.png"))
                 report = {"version": __version__, "frozen": bool(getattr(sys, "frozen", False)),
-                          "window_visible": window.isVisible(), "selected_node": selected.node.name,
+                          "window_visible": window.isVisible(), "selected_node": selected_name,
+                          "editor_edit_undo_redo_save_reopen": bool(args.editor_smoke_test),
                           "scene": window.scene.report()}
-                (args.smoke_test / "smoke.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+                (smoke_directory / "smoke.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
             except Exception:
                 import traceback
                 traceback.print_exc(); app.exit(1); return

@@ -27,6 +27,8 @@ jobs:
       - run: uv run python scripts/build_macos.py
       - name: Smoke bundled app
         run: '"artifacts/Cocos UI Preview.app/Contents/MacOS/Cocos UI Preview" --smoke-test artifacts/smoke'
+      - name: Smoke bundled property editor
+        run: '"artifacts/Cocos UI Preview.app/Contents/MacOS/Cocos UI Preview" --editor-smoke-test artifacts/editor-smoke'
       - uses: actions/upload-artifact@v4
         with:
           name: cocos-ui-preview-macos
@@ -36,3 +38,4 @@ jobs:
             artifacts/SHA256SUMS
             artifacts/build-receipt.json
             artifacts/smoke/
+            artifacts/editor-smoke/

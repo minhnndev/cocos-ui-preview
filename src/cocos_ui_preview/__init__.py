@@ -1,3 +1,3 @@
-"""Cocos UI Preview. Offline and read only. SPDX-License-Identifier: GPL-3.0-only."""
+"""Cocos UI Preview. Offline UI property editor. SPDX-License-Identifier: GPL-3.0-only."""
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

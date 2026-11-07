@@ -1,4 +1,4 @@
-"""Read-only legacy Cocos Studio JSON and explicit resource resolution."""
+"""Cocos Studio document model and explicit resource resolution."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -41,6 +41,7 @@ class Document:
     height: float
     format: str = "legacy-json"
     issues: list[str] = field(default_factory=list)
+    source_bytes: bytes | None = None
 
     @classmethod
     def load(cls, path):
@@ -49,7 +50,8 @@ class Document:
             raise ValueError("Open a Cocos Studio JSON or CSD file; CSB decoding is not implemented.")
         if path.stat().st_size > 16 * 1024 * 1024:
             raise ValueError("UI document exceeds the 16 MiB preview limit.")
-        source = path.read_text(encoding="utf-8-sig")
+        source_bytes = path.read_bytes()
+        source = source_bytes.decode("utf-8-sig")
         if path.suffix.lower() == ".csd":
             from .studio import load_csd
             data = load_csd(source)
@@ -58,6 +60,14 @@ class Document:
             if isinstance(data, dict) and "widgetTree" not in data:
                 from .studio import load_studio_json
                 data = load_studio_json(data)
+        document = cls.from_data(path, data)
+        document.source_bytes = source_bytes
+        return document
+
+    @classmethod
+    def from_data(cls, path, data):
+        """Validate an in-memory document without rereading or writing the source."""
+        path = Path(path).resolve()
         if not isinstance(data, dict) or not isinstance(data.get("widgetTree"), dict):
             raise ValueError("Expected a Cocos Studio JSON object with widgetTree.")
 

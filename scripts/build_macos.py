@@ -88,8 +88,10 @@ def build(output):
     info = {"CFBundleDisplayName": NAME, "CFBundleShortVersionString": version,
             "CFBundleVersion": version, "LSMinimumSystemVersion": "12.0",
             "NSHighResolutionCapable": True, "NSHumanReadableCopyright": "GPL-3.0-only · Cocos UI Preview contributors",
-            "CFBundleDocumentTypes": [{"CFBundleTypeName": "Cocos Studio UI", "CFBundleTypeRole": "Viewer",
-              "LSHandlerRank": "Alternate", "CFBundleTypeExtensions": ["json", "csd"]}]}
+            "CFBundleDocumentTypes": [{"CFBundleTypeName": "Legacy Cocos Studio JSON", "CFBundleTypeRole": "Editor",
+              "LSHandlerRank": "Alternate", "CFBundleTypeExtensions": ["json"]},
+              {"CFBundleTypeName": "Cocos Studio XML", "CFBundleTypeRole": "Viewer",
+               "LSHandlerRank": "Alternate", "CFBundleTypeExtensions": ["csd"]}]}
     spec = work / "CocosUI.spec"
     spec.write_text(f'''from PyInstaller.utils.hooks import collect_data_files
 a = Analysis([{str(entry)!r}], pathex=[{str(ROOT / 'src')!r}],

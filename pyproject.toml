@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cocos-ui-preview"
-version = "0.1.0"
-description = "Offline, read-only Cocos Studio UI preview and resource inspector"
+version = "0.2.0"
+description = "Offline Cocos Studio UI preview and legacy JSON property editor"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "GPL-3.0-only"
