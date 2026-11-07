@@ -3,3 +3,4 @@ recursive-include licenses *
 recursive-include scripts *.py
 recursive-include tests *.py
 recursive-include .github *.yml
+recursive-include docs *.png

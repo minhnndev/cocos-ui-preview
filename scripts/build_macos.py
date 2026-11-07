@@ -20,7 +20,7 @@ def source_files():
     names = ["pyproject.toml", "uv.lock", ".gitignore", "LICENSE", "NOTICE", "README.md",
              "THIRD_PARTY.md", "CONTRIBUTING.md", "CHANGELOG.md", "MANIFEST.in"]
     files = [ROOT / name for name in names]
-    for directory in ["src", "tests", "scripts", "licenses", ".github"]:
+    for directory in ["src", "tests", "scripts", "licenses", ".github", "docs"]:
         files.extend(p for p in (ROOT / directory).rglob("*") if p.is_file()
                      and "__pycache__" not in p.parts and not any(part.endswith(".egg-info") for part in p.parts)
                      and p.suffix not in {".pyc", ".pyo"} and p.name != ".DS_Store")

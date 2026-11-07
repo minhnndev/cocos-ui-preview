@@ -4,6 +4,11 @@ An offline, read-only desktop inspector for Cocos2d-x / Cocos Studio UI files.
 Open a template, inspect its hierarchy and texture geometry, isolate a subtree,
 and export a PNG without starting your game.
 
+![Cocos UI Preview on macOS, with the demo canvas, node tree and selected button properties](docs/images/app-preview.png)
+
+*Actual macOS app capture using the bundled original demo. The node tree,
+canvas and read-only inspector are shown together.*
+
 **Early release: static preview, not a Cocos runtime or full editor.**
 
 ## Install
@@ -49,6 +54,15 @@ cocos-ui-preview screen.json --resource-root Resources \
 The report lists missing/ambiguous resources and preview limits. It contains
 local paths; review it before sharing. The bundled demo and icon are original,
 redistributable fixtures. No game data is included.
+
+<details>
+<summary>Preview the exported demo PNG</summary>
+
+![PNG exported from the bundled demo, without editor panels or selection bounds](docs/images/export-preview.png)
+
+*The same demo exported as a PNG, without the editor panels or selection bounds.*
+
+</details>
 
 ## Support boundary
 
